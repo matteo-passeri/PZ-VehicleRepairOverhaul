@@ -270,6 +270,9 @@ local function _persistInstalledPart(vehicle, part)
 
   -- Now broadcast all the things for the part
   vehicle:updatePartStats()
+  -- B42 recomputes condition-based container capacity here.  Without this,
+  -- the server retains the damaged trunk limit after a successful repair.
+  if part.doInventoryItemStats then part:doInventoryItemStats() end
   vehicle:updateBulletStats()
   vehicle:transmitPartCondition(part)
   vehicle:transmitPartItem(part)
