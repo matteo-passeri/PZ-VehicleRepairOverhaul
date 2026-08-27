@@ -119,5 +119,4 @@ function ISVehicleMenu.FillMenuOutsideVehicle(player, context, vehicle, test)
         end
 
     enableSalvage(player, context, vehicle, test)
-
 end
