@@ -1,7 +1,7 @@
-name=Vehicle Repair Overhaul [DEV MODIFIED]
-description=Vehicle Parts Repair and Salvage Mod for Project Zomboid
+name=Vehicle Repair Overhaul + Nearby Containers
+description=Vehicle Parts Repair and Salvage Mod for Project Zomboid with nearby container and ground-item support
 poster=poster.png
 icon=icon.png
 versionMax=41.78.16
-id=VehicleRepairOverhaulDEV
+id=VehicleRepairOverhaul
 author=hehehemann
