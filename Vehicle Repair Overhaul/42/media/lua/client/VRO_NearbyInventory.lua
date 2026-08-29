@@ -173,6 +173,23 @@ end
 -- Equipment must reach the main inventory before normal PZ equip actions run.
 -- Consumable bundles below separately leave items in carried bags alone.
 NearbyInventory._queued = NearbyInventory._queued or setmetatable({}, { __mode = "k" })
+
+local function _playerInventory(playerObj)
+    if not playerObj then return nil end
+    local valid, getInventory = pcall(function() return playerObj.getInventory end)
+    if not (valid and getInventory) then return nil end
+    local ok, inventory = pcall(function() return playerObj:getInventory() end)
+    return ok and inventory or nil
+end
+
+local function _itemContainer(item)
+    if not item then return false, nil end
+    local valid, getContainer = pcall(function() return item.getContainer end)
+    if not (valid and getContainer) then return false, nil end
+    local ok, container = pcall(function() return item:getContainer() end)
+    return ok, container
+end
+
 if Events and Events.OnTick and not NearbyInventory._clearQueuedOnTick then
     NearbyInventory._clearQueuedOnTick = true
     Events.OnTick.Add(function()
@@ -180,30 +197,44 @@ if Events and Events.OnTick and not NearbyInventory._clearQueuedOnTick then
         -- whole table every tick permits a staging retry to queue the same
         -- transfer again before the first action has run.
         for item, playerObj in pairs(NearbyInventory._queued) do
-            if not playerObj or item:getContainer() == playerObj:getInventory() then
+            local playerInv = _playerInventory(playerObj)
+            local itemValid, container = _itemContainer(item)
+            if not playerInv or not itemValid or container == playerInv then
                 NearbyInventory._queued[item] = nil
             end
         end
     end)
 end
 function NearbyInventory.queueItemToPlayer(playerObj, item)
-    if not item or item:getContainer() == playerObj:getInventory() then return true end
-    if NearbyInventory._queued[item] then return true end
+    local playerInv = _playerInventory(playerObj)
+    local itemValid, source = _itemContainer(item)
+    if not (playerInv and itemValid) then return false end
+    if source == playerInv then
+        NearbyInventory._queued[item] = nil
+        return true
+    end
 
-    local source = item:getContainer()
+    local queuedFor = NearbyInventory._queued[item]
+    if queuedFor then return queuedFor == playerObj end
+
     if source then
         local ok, action = pcall(function()
-            return ISInventoryTransferAction:new(playerObj, item, source, playerObj:getInventory(), 10)
+            return ISInventoryTransferAction:new(playerObj, item, source, playerInv, 10)
         end)
         if not (ok and action) then return false end
-        NearbyInventory._queued[item] = true
-        ISTimedActionQueue.add(action)
+        if not (ISTimedActionQueue and ISTimedActionQueue.add) then return false end
+        NearbyInventory._queued[item] = playerObj
+        local added = pcall(ISTimedActionQueue.add, action)
+        if not added then
+            NearbyInventory._queued[item] = nil
+            return false
+        end
         return true
     end
 
     -- Loose ground items need the game's normal pickup handling.
     if not (ISInventoryPaneContextMenu and ISInventoryPaneContextMenu.transferIfNeeded) then return false end
-    NearbyInventory._queued[item] = true
+    NearbyInventory._queued[item] = playerObj
     local ok = pcall(ISInventoryPaneContextMenu.transferIfNeeded, playerObj, item)
     if not ok then NearbyInventory._queued[item] = nil end
     return ok
