@@ -2378,6 +2378,11 @@ local function addInventoryFixOptions(playerObj, context, broken)
           rendered = true
           -- we already have torchGlobal above; pass it through
           option = sub:addOption(label, playerObj, function(p, fixg, fixr, idx_, brk, fxB, glB, glK, torchHint)
+            -- Inventory repairs can be invoked from a floor/container context.
+            -- Stage the selected target before the material barrier so the
+            -- server can resolve it from the player's inventory.
+            if brk and brk.getContainer and brk:getContainer() ~= p:getInventory()
+              and not NearbyInventory.queueItemToPlayer(p, brk) then return end
             if not stageRepairBundles(p, fxB, glB, glK, function()
               local repairEq = mergeEquip(fixr.equip, fixg.equip)
               local chosenP, chosenS, equipKeep, err =

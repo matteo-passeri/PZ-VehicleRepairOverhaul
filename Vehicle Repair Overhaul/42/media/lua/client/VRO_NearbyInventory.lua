@@ -176,7 +176,14 @@ NearbyInventory._queued = NearbyInventory._queued or setmetatable({}, { __mode =
 if Events and Events.OnTick and not NearbyInventory._clearQueuedOnTick then
     NearbyInventory._clearQueuedOnTick = true
     Events.OnTick.Add(function()
-        NearbyInventory._queued = setmetatable({}, { __mode = "k" })
+        -- Keep an item marked while its transfer is still queued.  Clearing the
+        -- whole table every tick permits a staging retry to queue the same
+        -- transfer again before the first action has run.
+        for item, playerObj in pairs(NearbyInventory._queued) do
+            if not playerObj or item:getContainer() == playerObj:getInventory() then
+                NearbyInventory._queued[item] = nil
+            end
+        end
     end)
 end
 function NearbyInventory.queueItemToPlayer(playerObj, item)
@@ -309,6 +316,18 @@ function StageBundlesAction:perform()
         -- A transfer can be deferred by movement or another queued action.
         -- Put a fresh check behind its retry rather than racing it on OnTick.
         for i = 1, #self.bundles do
+            local bundle = self.bundles[i]
+            if bundle then
+                for j = 1, #bundle do
+                    local item = bundle[j] and bundle[j].item
+                    if item and not _containsPlayerItem(self.character, item) then
+                        -- This check is ordered after the original transfer
+                        -- actions, so an item still outside the inventory was
+                        -- not transferred and may be queued again safely.
+                        NearbyInventory._queued[item] = nil
+                    end
+                end
+            end
             NearbyInventory.queueBundleToPlayer(self.character, self.bundles[i])
         end
         ISTimedActionQueue.add(StageBundlesAction:new(
