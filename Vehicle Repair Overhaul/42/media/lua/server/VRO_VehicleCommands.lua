@@ -44,6 +44,17 @@ local function _removeItemMP(player, it)
   return sent
 end
 
+local function _findMainInventoryItemById(player, id)
+  local inventory = player and player:getInventory()
+  if not (inventory and id and inventory.getItems) then return nil end
+  local items = inventory:getItems()
+  for i = 0, items:size() - 1 do
+    local item = items:get(i)
+    if item and item.getID and item:getID() == id then return item end
+  end
+  return nil
+end
+
 local function clamp(v,a,b) if v<a then return a elseif v>b then return b else return v end end
 local function isDrainable(it) return it and instanceof(it, "DrainableComboItem") end
 
@@ -597,6 +608,59 @@ VRO_CMDS.doFix = function(player, args)
     itemId     = -1,
     installing = true
   })
+end
+
+-- Salvage is intentionally fully server-authoritative.  The client only asks
+-- after staging the selected item and torch into its main inventory.
+VRO_CMDS.salvagePart = function(player, args)
+  local VRO = require "VRO/Core"
+  require "VRO/SalvageCatalog"
+  if not VRO.IsVehicleSalvageEnabled() then return end
+  args = args or {}
+  local spec = VRO.GetSalvageSpecByKey(args.salvageKey)
+  local item = _findMainInventoryItemById(player, args.itemId)
+  if not (spec and item and item.getFullType and VRO.GetSalvageSpec(item:getFullType()) == spec) then
+    log("salvagePart: rejected invalid item/category")
+    return
+  end
+
+  local skill = perkLevel(player, spec.skill)
+  if skill < spec.level then return end
+  local torch = nil
+  if spec.torch then
+    torch = player:getPrimaryHandItem()
+    if not (isTorchItem(torch) and drainableUses(torch) >= spec.torch) then return end
+    if _countUsesForFullType(player, "Base.WeldingMask") < 1 then return end
+  end
+
+  local pools = {
+    small={"Base.Screws", "Base.SmallSheetMetal", "Base.ScrapMetal", "Base.SmallSheetMetal"},
+    fabrics={"Base.RippedSheetsDirty", "Base.ScrapMetal", "Base.DenimStripsDirty", "Base.LeatherStripsDirty", "Base.Thread"},
+    electronics={"Base.SmallSheetMetal", "Base.ScrapMetal", "Base.ElectronicsScrap", "Base.Wire", "Base.UnusableMetal"},
+    large={"Base.SheetMetal", "Base.SmallSheetMetal", "Base.ElectronicsScrap", "Base.Screws", "Base.SheetMetal", "Base.SmallSheetMetal", "Base.MetalBar"},
+    armour={"Base.SheetMetal", "Base.SmallSheetMetal", "Base.ScrapMetal", "Base.SheetMetal", "Base.MetalBar"},
+    suspension={"Base.MetalBar", "Base.MetalBar", "Base.ScrapMetal", "Base.ScrapMetal", "Base.UnusableMetal", "Base.Screws"},
+    tires={"Base.ScrapMetal", "Base.ScrapMetal", "Base.Wire", "Base.UnusableMetal", "Base.Screws"},
+    leathers={"Base.LeatherStrips", "Base.LeatherStripsDirty", "Base.Thread", "Base.Thread"},
+    softtops={"Base.LeatherStrips", "Base.LeatherStripsDirty", "Base.Thread", "Base.Tarp", "Base.ScrapMetal"},
+    muffler={"Base.MetalPipe", "Base.SmallSheetMetal", "Base.Screws", "Base.UnusableMetal", "Base.ScrapMetal"},
+  }
+  local pool = pools[spec.returns]
+  if not pool then print("[VRO] salvagePart has no return pool: " .. tostring(spec.key)); return end
+
+  _removeItemMP(player, item)
+  if torch then consumeUses(torch, spec.torch, true) end
+  local returnSkill = "MetalWelding"
+  if spec.returns == "fabrics" or spec.returns == "leathers" or spec.returns == "softtops" then returnSkill = "Tailoring" end
+  local chance = 45 + perkLevel(player, "Mechanics") + perkLevel(player, returnSkill)
+  for _ = 1, 3 do
+    if ZombRand(1, 100) < chance then player:getInventory():AddItem(pool[ZombRand(#pool) + 1]) end
+  end
+  local xpPerk = resolvePerk(spec.skill)
+  if xpPerk then
+    local xp = player:getXp()
+    if xp and xp.AddXP then xp:AddXP(xpPerk, spec.xp) end
+  end
 end
 
 VRO_VehicleCommands.OnClientCommand = function(module, command, player, args)

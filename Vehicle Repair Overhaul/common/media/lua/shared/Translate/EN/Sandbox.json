@@ -6,6 +6,8 @@
 	
 	"Sandbox_VRO_UseVanillaFixingRecipes": "Old Repair System",
 	"Sandbox_VRO_UseVanillaFixingRecipes_tooltip": "Use the original repair system that allows repairs to be done standing in place, doesn't use a welding mask, any sounds or animations.",
+	"Sandbox_VRO_DisableVehicleSalvage": "Disable vehicle part salvage",
+	"Sandbox_VRO_DisableVehicleSalvage_tooltip": "Disable salvaging removed vehicle parts.",
 	"Sandbox_VRO_UseNearbyContainers": "Search nearby containers",
 	"Sandbox_VRO_UseNearbyContainers_tooltip": "Allow Vehicle Repair Overhaul to use repair materials stored in nearby containers.",
 	"Sandbox_VRO_NearbySearchRadius": "Search radius",
