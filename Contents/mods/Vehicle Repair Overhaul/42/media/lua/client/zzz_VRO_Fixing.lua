@@ -11,6 +11,7 @@ require "TimedActions/VRO_DoFixAction"
 local NearbyInventory = require "VRO_NearbyInventory"
 
 local VRO = require "VRO/Core"
+local BlowTorch = require "VRO/BlowTorch"
 VRO.__index = VRO
 VRO.Recipes = VRO.Recipes or {}
 --[[  (recipes injected via VRO_Recipes.lua)  ]]
@@ -307,6 +308,7 @@ end
 local function isDrainable(it) return it and instanceof(it,"DrainableComboItem") end
 local function drainableUses(it)
   if not it then return 0 end
+  if BlowTorch.isItem(it) then return BlowTorch.uses(it) end
   if isDrainable(it) then
     if it.getDrainableUsesInt then return it:getDrainableUsesInt() end
     if it.getCurrentUses then return it:getCurrentUses() end
@@ -515,12 +517,7 @@ end
 
 -- Blowtorch helpers
 local function isTorchItem(it)
-  if not it then return false end
-  if it.hasTag and it:hasTag(_tag("BlowTorch")) then return true end
-  local t = it.getType and it:getType() or ""
-  if t == "BlowTorch" then return true end
-  local ft = it.getFullType and it:getFullType() or ""
-  return ft == "Base.BlowTorch"
+  return BlowTorch.isItem(it)
 end
 
 -- Item must be NOT broken and strictly below max condition to be repairable from inventory

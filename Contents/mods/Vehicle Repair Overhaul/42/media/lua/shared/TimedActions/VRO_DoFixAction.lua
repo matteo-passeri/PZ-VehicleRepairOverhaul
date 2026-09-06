@@ -1,6 +1,7 @@
 ---@diagnostic disable: undefined-field, param-type-mismatch, redundant-parameter
 require "TimedActions/ISBaseTimedAction"
 local VRO = require "VRO/Core"
+local BlowTorch = require "VRO/BlowTorch"
 
 ----------------------------------------------------------------
 -- Minimal helpers the action relies on
@@ -9,6 +10,7 @@ local function isDrainable(it) return it and instanceof(it, "DrainableComboItem"
 
 local function drainableUses(it)
   if not it then return 0 end
+  if BlowTorch.isItem(it) then return BlowTorch.uses(it) end
   if isDrainable(it) then
     if it.getDrainableUsesInt then return it:getDrainableUsesInt() end
     if it.getCurrentUses then return it:getCurrentUses() end
@@ -22,22 +24,7 @@ local function drainableUses(it)
 end
 
 local function isTorchItem(it)
-  if not it then return false end
-
-  -- 42.13+ :hasTag expects an ItemTag; try it safely if registry is present
-  if it.hasTag and ItemTag and (ResourceLocation and (ResourceLocation.of or ResourceLocation.new)) then
-    local rl = ResourceLocation.of and ResourceLocation.of("base:BlowTorch")
-             or (ResourceLocation.new and ResourceLocation.new("base","BlowTorch"))
-    if rl then
-      local ok, tag = pcall(function() return ItemTag.get(rl) end)
-      if ok and tag and it:hasTag(tag) then return true end
-    end
-  end
-
-  -- Fallbacks that also work on older builds
-  local t  = it.getType     and it:getType()     or ""
-  local ft = it.getFullType and it:getFullType() or ""
-  return t == "BlowTorch" or ft == "Base.BlowTorch"
+  return BlowTorch.isItem(it)
 end
 
 local function consumeItems(character, bundles)

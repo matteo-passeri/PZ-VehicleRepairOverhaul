@@ -3,18 +3,13 @@ require "ISUI/ISInventoryPaneContextMenu"
 require "TimedActions/VRO_DoSalvageAction"
 local VRO = require "VRO/Core"
 require "VRO/SalvageCatalog"
+local BlowTorch = require "VRO/BlowTorch"
 local NearbyInventory = require "VRO_NearbyInventory"
 
 local function unwrap(items)
   if not items then return nil end
   local first = items[1]
   return first and (first.items and first.items[1] or first) or nil
-end
-
-local function uses(item)
-  if not item then return 0 end
-  if item.getDrainableUsesInt then return item:getDrainableUsesInt() end
-  return 0
 end
 
 local function findItem(inv, predicate)
@@ -29,7 +24,7 @@ end
 
 local function findTorch(inv, needed)
   return findItem(inv, function(item)
-    return item and item.getFullType and item:getFullType() == "Base.BlowTorch" and uses(item) >= needed
+    return BlowTorch.isItem(item) and BlowTorch.uses(item) >= needed
   end)
 end
 
@@ -69,7 +64,7 @@ local function addSalvageOption(player, context, item, spec)
   tip:setName(getText(spec.name))
   tip.description = string.format("<RGB:%s>%s %d/%d <LINE>", levelOK and "1,1,1" or "1,0,0", getText("IGUI_perks_" .. spec.skill), perk(player, spec.skill), spec.level)
   if spec.torch then
-    tip.description = tip.description .. string.format("<RGB:%s>%s %d/%d <LINE>", torch and "1,1,1" or "1,0,0", getItemNameFromFullType("Base.BlowTorch"), torch and uses(torch) or 0, spec.torch)
+    tip.description = tip.description .. string.format("<RGB:%s>%s %d/%d <LINE>", torch and "1,1,1" or "1,0,0", getItemNameFromFullType("Base.BlowTorch"), torch and BlowTorch.uses(torch) or 0, spec.torch)
     tip.description = tip.description .. string.format("<RGB:%s>%s %d/1", maskOK and "1,1,1" or "1,0,0", getItemNameFromFullType("Base.WeldingMask"), maskOK and 1 or 0)
   end
 end

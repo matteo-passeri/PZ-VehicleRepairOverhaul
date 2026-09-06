@@ -4,6 +4,7 @@ if isClient() then return end
 -- VRO server command module
 local VRO_VehicleCommands = {}
 local VRO_CMDS = {}
+local BlowTorch = require "VRO/BlowTorch"
 
 VRO_VehicleCommands.debug = getDebug() or false
 local function log(msg)
@@ -60,6 +61,7 @@ local function isDrainable(it) return it and instanceof(it, "DrainableComboItem"
 
 local function drainableUses(it)
   if not it then return 0 end
+  if BlowTorch.isItem(it) then return BlowTorch.uses(it) end
   if not isDrainable(it) then return 0 end
   if it.getDrainableUsesInt then return it:getDrainableUsesInt() end
   if it.getCurrentUses      then return it:getCurrentUses() end
@@ -67,18 +69,7 @@ local function drainableUses(it)
 end
 
 local function isTorchItem(it)
-  if not it then return false end
-  if it.hasTag and ItemTag and ResourceLocation and (ResourceLocation.of or ResourceLocation.new) then
-    local rl = ResourceLocation.of and ResourceLocation.of("base:BlowTorch")
-             or (ResourceLocation.new and ResourceLocation.new("base","BlowTorch"))
-    if rl then
-      local ok, tag = pcall(function() return ItemTag.get(rl) end)
-      if ok and tag and it:hasTag(tag) then return true end
-    end
-  end
-  local t  = it.getType     and it:getType()     or ""
-  local ft = it.getFullType and it:getFullType() or ""
-  return t == "BlowTorch" or ft == "Base.BlowTorch"
+  return BlowTorch.isItem(it)
 end
 
 -- Count total "uses" for a fullType across all stacks (drainables = uses, others = 1 each)
@@ -164,6 +155,11 @@ end
 
 local function consumeUses(it, uses, keepOnEmpty)
   if not (it and uses and uses > 0) then return end
+  if isTorchItem(it) then
+    -- BlowTorch.consume preserves the item at zero fuel and uses B42 currentUses.
+    BlowTorch.consume(it, uses)
+    return
+  end
   if isDrainable(it) and it.Use then
     for _=1,uses do
       if drainableUses(it) <= 0 then break end
@@ -648,8 +644,10 @@ VRO_CMDS.salvagePart = function(player, args)
   local pool = pools[spec.returns]
   if not pool then print("[VRO] salvagePart has no return pool: " .. tostring(spec.key)); return end
 
+  -- Consume before removing the source item so a failed B42 fuel mutation
+  -- cannot produce salvage output or delete the part.
+  if torch and not BlowTorch.consume(torch, spec.torch) then return end
   _removeItemMP(player, item)
-  if torch then consumeUses(torch, spec.torch, true) end
   local returnSkill = "MetalWelding"
   if spec.returns == "fabrics" or spec.returns == "leathers" or spec.returns == "softtops" then returnSkill = "Tailoring" end
   local chance = 45 + perkLevel(player, "Mechanics") + perkLevel(player, returnSkill)
