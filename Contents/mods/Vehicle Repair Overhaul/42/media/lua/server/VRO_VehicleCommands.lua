@@ -45,6 +45,19 @@ local function _removeItemMP(player, it)
   return sent
 end
 
+-- Create output on the server and replicate the exact created instance.
+local function _addItemMP(player, fullType)
+  local inventory = player and player.getInventory and player:getInventory()
+  if not inventory then return nil end
+
+  local item = inventory:AddItem(fullType)
+  if item and sendAddItemToContainer then
+    local ok = pcall(sendAddItemToContainer, inventory, item)
+    if not ok then log("addItemMP: failed to replicate " .. tostring(fullType)) end
+  end
+  return item
+end
+
 local function _findMainInventoryItemById(player, id)
   local inventory = player and player:getInventory()
   if not (inventory and id and inventory.getItems) then return nil end
@@ -651,8 +664,16 @@ VRO_CMDS.salvagePart = function(player, args)
   local returnSkill = "MetalWelding"
   if spec.returns == "fabrics" or spec.returns == "leathers" or spec.returns == "softtops" then returnSkill = "Tailoring" end
   local chance = 45 + perkLevel(player, "Mechanics") + perkLevel(player, returnSkill)
+  log("salvagePart: key=" .. tostring(spec.key) .. " chance=" .. tostring(chance))
   for _ = 1, 3 do
-    if ZombRand(1, 100) < chance then player:getInventory():AddItem(pool[ZombRand(#pool) + 1]) end
+    if ZombRand(1, 100) < chance then
+      local fullType = pool[ZombRand(#pool) + 1]
+      if _addItemMP(player, fullType) then
+        log("salvagePart: generated " .. tostring(fullType))
+      end
+    else
+      log("salvagePart: roll failed")
+    end
   end
   local xpPerk = resolvePerk(spec.skill)
   if xpPerk then
