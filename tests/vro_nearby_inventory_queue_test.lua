@@ -42,7 +42,7 @@ package.preload["VRO/Core"] = function()
     return { NearbyInventory = nil }
 end
 
-local path = "42/media/lua/client/VRO_NearbyInventory.lua"
+local path = "Contents/mods/Vehicle Repair Overhaul/42/media/lua/client/VRO_NearbyInventory.lua"
 local NearbyInventory = assert(loadfile(path))()
 
 local inventory = {}
