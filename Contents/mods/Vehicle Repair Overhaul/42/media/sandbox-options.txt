@@ -1,0 +1,57 @@
+VERSION = 1,
+
+option VRO_EnableEngineRebuild
+{
+    type = boolean,
+    default = false,
+	
+	page = VRO,
+	translation = VRO_EnableEngineRebuild,
+}
+
+option VRO_UseVanillaFixingRecipes
+{
+    type = boolean,
+    default = false,
+
+    page = VRO,
+    translation = VRO_UseVanillaFixingRecipes,
+}
+
+option VRO_DisableVehicleSalvage
+{
+    type = boolean,
+    default = false,
+
+    page = VRO,
+    translation = VRO_DisableVehicleSalvage,
+}
+
+option VRO_UseNearbyContainers
+{
+    type = boolean,
+    default = true,
+
+    page = VRO,
+    translation = VRO_UseNearbyContainers,
+}
+
+option VRO_NearbySearchRadius
+{
+    type = integer,
+    default = 2,
+    min = 1,
+    max = 10,
+
+    page = VRO,
+    translation = VRO_NearbySearchRadius,
+}
+
+option VRO_SearchNearbyGroundItems
+{
+    type = boolean,
+    default = true,
+
+    page = VRO,
+    translation = VRO_SearchNearbyGroundItems,
+}

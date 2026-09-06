@@ -1,0 +1,9 @@
+name=Vehicle Repair Overhaul + Nearby Containers
+description=Vehicle Repair Overhaul for Project Zomboid Build 42 with nearby container and ground-item support
+poster=poster.png
+icon=icon.png
+versionMin=42.19
+id=VehicleRepairOverhaul
+loadModBefore=\ProjectSummerCar,\Ivmakk_RestoreEngineQuality
+incompatible=\SimpleAutoParts
+author=hehehemann, SP4RTAN
